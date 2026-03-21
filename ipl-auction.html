@@ -1,0 +1,2224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IPL Auction Live</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=Barlow+Condensed:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<style>
+:root {
+  --gold: #FFD700;
+  --gold2: #FFA500;
+  --crimson: #DC143C;
+  --deep: #0A0A14;
+  --card: #12121F;
+  --card2: #1A1A2E;
+  --border: rgba(255,215,0,0.2);
+  --text: #F0E6C8;
+  --muted: #8A7A5A;
+  --green: #00E676;
+  --blue: #29B6F6;
+  --purple: #CE93D8;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--deep);
+  color: var(--text);
+  font-family: 'Rajdhani', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: 
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(220,20,60,0.15) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 80%, rgba(255,165,0,0.08) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.screen { display: none; min-height: 100vh; position: relative; z-index: 1; }
+.screen.active { display: flex; flex-direction: column; }
+
+/* ===== HEADER ===== */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  border-bottom: 1px solid var(--border);
+  gap: 16px;
+}
+
+.logo-text {
+  font-family: 'Bebas Neue', cursive;
+  font-size: 2.4rem;
+  letter-spacing: 4px;
+  background: linear-gradient(135deg, var(--gold), var(--gold2), var(--crimson));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.logo-badge {
+  background: var(--crimson);
+  color: white;
+  font-family: 'Bebas Neue', cursive;
+  font-size: 0.85rem;
+  letter-spacing: 2px;
+  padding: 3px 10px;
+  border-radius: 4px;
+  animation: pulse-badge 2s ease-in-out infinite;
+}
+
+@keyframes pulse-badge {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* ===== ENTRY SCREEN ===== */
+#screen-entry {
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.entry-box {
+  width: 100%;
+  max-width: 440px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 40px;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,215,0,0.1);
+}
+
+.entry-title {
+  font-family: 'Bebas Neue', cursive;
+  font-size: 1.8rem;
+  letter-spacing: 3px;
+  color: var(--gold);
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.entry-sub {
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin-bottom: 32px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+label {
+  display: block;
+  font-size: 0.8rem;
+  letter-spacing: 2px;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+input[type=text], input[type=number], select {
+  width: 100%;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  color: var(--text);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+}
+
+input:focus, select:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(255,215,0,0.1);
+}
+
+select option { background: var(--card2); }
+
+.btn-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.btn {
+  padding: 14px 20px;
+  border: none;
+  border-radius: 8px;
+  font-family: 'Bebas Neue', cursive;
+  font-size: 1.1rem;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0);
+  transition: background 0.2s;
+}
+
+.btn:hover::after { background: rgba(255,255,255,0.08); }
+.btn:active { transform: scale(0.97); }
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--gold), var(--gold2));
+  color: #000;
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid var(--gold);
+  color: var(--gold);
+}
+
+.btn-danger {
+  background: var(--crimson);
+  color: white;
+}
+
+.btn-full {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
+.btn-green {
+  background: linear-gradient(135deg, #00C853, #00E676);
+  color: #000;
+}
+
+.btn-blue {
+  background: linear-gradient(135deg, #0288D1, #29B6F6);
+  color: #000;
+}
+
+.divider {
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.8rem;
+  letter-spacing: 2px;
+  margin: 20px 0;
+  position: relative;
+}
+
+.divider::before, .divider::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 40%;
+  height: 1px;
+  background: var(--border);
+}
+
+.divider::before { left: 0; }
+.divider::after { right: 0; }
+
+/* ===== LOBBY ===== */
+#screen-lobby {
+  padding: 20px;
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.room-code-box {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.room-code-label {
+  font-size: 0.75rem;
+  letter-spacing: 2px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.room-code-value {
+  font-family: 'Bebas Neue', cursive;
+  font-size: 2rem;
+  letter-spacing: 8px;
+  color: var(--gold);
+}
+
+.lobby-grid {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 20px;
+}
+
+@media (max-width: 700px) {
+  .lobby-grid { grid-template-columns: 1fr; }
+  .btn-row { grid-template-columns: 1fr; }
+}
+
+.panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.panel-title {
+  font-family: 'Bebas Neue', cursive;
+  font-size: 1.2rem;
+  letter-spacing: 3px;
+  color: var(--gold);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.player-list { display: flex; flex-direction: column; gap: 10px; }
+
+.player-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,215,0,0.1);
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.player-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--crimson), var(--gold2));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Bebas Neue', cursive;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.player-name-display { font-weight: 600; font-size: 1rem; }
+.player-team-tag {
+  font-size: 0.75rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.host-crown { color: var(--gold); font-size: 0.9rem; }
+
+/* ===== AUCTION SCREEN ===== */
+#screen-auction {
+  padding: 16px;
+  max-width: 1100px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.auction-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 16px;
+}
+
+@media (max-width: 800px) {
+  .auction-layout { grid-template-columns: 1fr; }
+}
+
+/* Player Card */
+.player-spotlight {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  position: relative;
+}
+
+.player-spotlight-header {
+  background: linear-gradient(135deg, var(--crimson) 0%, #8B0000 100%);
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.player-photo-circle {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  border: 3px solid rgba(255,215,0,0.6);
+  background: rgba(0,0,0,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.2rem;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.player-photo-circle img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.player-spotlight-name {
+  font-family: 'Bebas Neue', cursive;
+  font-size: 2rem;
+  letter-spacing: 2px;
+  line-height: 1.1;
+}
+
+.player-spotlight-meta {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.tag {
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  letter-spacing: 1px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.tag-batter { background: rgba(41,182,246,0.25); color: var(--blue); border: 1px solid rgba(41,182,246,0.4); }
+.tag-bowler { background: rgba(0,230,118,0.2); color: var(--green); border: 1px solid rgba(0,230,118,0.3); }
+.tag-allrounder { background: rgba(206,147,216,0.2); color: var(--purple); border: 1px solid rgba(206,147,216,0.3); }
+.tag-overseas { background: rgba(255,152,0,0.2); color: #FFB74D; border: 1px solid rgba(255,152,0,0.3); }
+.tag-tier-top { background: rgba(255,215,0,0.2); color: var(--gold); border: 1px solid rgba(255,215,0,0.3); }
+.tag-tier-mid { background: rgba(200,200,200,0.15); color: #ddd; border: 1px solid rgba(200,200,200,0.2); }
+.tag-tier-low { background: rgba(150,100,50,0.2); color: #C8956C; border: 1px solid rgba(150,100,50,0.3); }
+
+.player-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border-top: 1px solid var(--border);
+}
+
+.stat-cell {
+  background: var(--card);
+  padding: 14px 12px;
+  text-align: center;
+}
+
+.stat-value {
+  font-family: 'Bebas Neue', cursive;
+  font-size: 1.6rem;
+  color: var(--gold);
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 0.65rem;
+  color: var(--muted);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+/* Bidding Area */
+.bid-area {
+  padding: 20px 24px;
+}
+
+.current-bid-display {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.current-bid-label {
+  font-size: 0.75rem;
+  letter-spacing: 2px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.current-bid-value {
+  font-family: 'Bebas Neue', cursive;
+  font-size: 3rem;
+  color: var(--gold);
+  line-height: 1;
+  transition: all 0.3s;
+}
+
+.current-bidder {
+  font-size: 0.85rem;
+  color: var(--green);
+  margin-top: 4px;
+}
+
+/* Timer */
+.timer-ring-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.timer-ring {
+  position: relative;
+  width: 80px;
+  height: 80px;
+}
+
+.timer-ring svg {
+  transform: rotate(-90deg);
+}
+
+.timer-ring circle {
+  fill: none;
+  stroke-width: 5;
+}
+
+.timer-ring .bg { stroke: rgba(255,255,255,0.1); }
+.timer-ring .fg {
+  stroke: var(--gold);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1s linear, stroke 0.5s;
+}
+
+.timer-number {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: 'Bebas Neue', cursive;
+  font-size: 1.8rem;
+  color: var(--gold);
+}
+
+.bid-btn-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.bid-btn {
+  background: linear-gradient(135deg, var(--crimson), #8B0000);
+  border: 1px solid rgba(220,20,60,0.5);
+  color: white;
+  padding: 14px 10px;
+  border-radius: 8px;
+  font-family: 'Bebas Neue', cursive;
+  font-size: 1.05rem;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.bid-btn:hover { filter: brightness(1.2); transform: translateY(-1px); }
+.bid-btn:active { transform: scale(0.97); }
+.bid-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+/* Right panel */
+.auction-side { display: flex; flex-direction: column; gap: 14px; }
+
+.purse-bar {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.purse-amount {
+  font-family: 'Bebas Neue', cursive;
+  font-size: 2.2rem;
+  color: var(--green);
+}
+
+.purse-bar-fill {
+  height: 6px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 3px;
+  margin-top: 8px;
+  overflow: hidden;
+}
+
+.purse-bar-inner {
+  height: 100%;
+  background: linear-gradient(90deg, var(--green), #69F0AE);
+  border-radius: 3px;
+  transition: width 0.5s;
+}
+
+.team-scroll {
+  max-height: 220px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.team-scroll::-webkit-scrollbar { width: 4px; }
+.team-scroll::-webkit-scrollbar-track { background: transparent; }
+.team-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.mini-player-card {
+  background: rgba(255,255,255,0.04);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mini-player-price { color: var(--gold); font-weight: 700; font-size: 0.8rem; }
+
+/* Bid log */
+.bid-log {
+  max-height: 160px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bid-log::-webkit-scrollbar { width: 4px; }
+.bid-log::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.bid-log-entry {
+  padding: 6px 10px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 5px;
+  font-size: 0.8rem;
+  display: flex;
+  justify-content: space-between;
+}
+
+.bid-log-name { color: var(--text); }
+.bid-log-amount { color: var(--gold); font-weight: 700; }
+
+/* Sold / Unsold overlay */
+.result-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  display: none;
+}
+
+.result-overlay.active { display: flex; animation: fadeIn 0.3s; }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.result-card {
+  background: var(--card);
+  border-radius: 20px;
+  padding: 40px;
+  text-align: center;
+  border: 2px solid var(--gold);
+  max-width: 380px;
+  animation: scaleIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes scaleIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+.result-type {
+  font-family: 'Bebas Neue', cursive;
+  font-size: 4rem;
+  letter-spacing: 6px;
+}
+
+.result-sold { color: var(--gold); }
+.result-unsold { color: var(--muted); }
+
+/* ===== RESULTS ===== */
+#screen-results {
+  padding: 24px;
+  max-width: 1000px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.leaderboard {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.lb-entry {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.lb-header {
+  display: flex;
+  align-items: center;
+  padding: 16px 20px;
+  gap: 16px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.lb-rank {
+  font-family: 'Bebas Neue', cursive;
+  font-size: 2.5rem;
+  color: var(--muted);
+  width: 50px;
+  flex-shrink: 0;
+}
+
+.lb-rank-1 { color: var(--gold); }
+.lb-rank-2 { color: #C0C0C0; }
+.lb-rank-3 { color: #CD7F32; }
+
+.lb-team-info { flex: 1; }
+.lb-team-name { font-family: 'Barlow Condensed', sans-serif; font-size: 1.4rem; font-weight: 700; }
+.lb-team-owner { color: var(--muted); font-size: 0.85rem; }
+
+.lb-score-box { text-align: right; }
+.lb-score { font-family: 'Bebas Neue', cursive; font-size: 2rem; color: var(--gold); }
+.lb-score-label { font-size: 0.7rem; color: var(--muted); letter-spacing: 1px; }
+.lb-purse-used { font-size: 0.8rem; color: var(--green); }
+
+.lb-players {
+  display: none;
+  padding: 0 20px 16px;
+  gap: 8px;
+  flex-direction: column;
+}
+
+.lb-players.open { display: flex; }
+
+.lb-player-row {
+  background: rgba(255,255,255,0.03);
+  border-radius: 6px;
+  padding: 8px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+}
+
+.lb-player-pts { color: var(--gold); font-weight: 700; }
+
+/* Notification toast */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: var(--card2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-size: 0.9rem;
+  z-index: 200;
+  transition: transform 0.3s;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+/* Chip counter */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,215,0,0.15);
+  color: var(--gold);
+  border-radius: 20px;
+  padding: 2px 10px;
+  font-size: 0.75rem;
+  letter-spacing: 1px;
+  font-weight: 700;
+  margin-left: 8px;
+}
+
+/* Chat */
+.chat-panel {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 280px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  z-index: 50;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+
+.chat-header {
+  background: rgba(255,215,0,0.1);
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.chat-title { font-size: 0.8rem; letter-spacing: 1.5px; font-weight: 700; }
+.chat-toggle { background: none; border: none; color: var(--gold); cursor: pointer; font-size: 1.2rem; }
+
+.chat-body { max-height: 200px; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 4px; }
+.chat-body::-webkit-scrollbar { width: 3px; }
+.chat-body::-webkit-scrollbar-thumb { background: var(--border); }
+
+.chat-msg { padding: 4px 8px; border-radius: 4px; font-size: 0.78rem; background: rgba(255,255,255,0.03); }
+.chat-msg span { color: var(--gold); font-weight: 700; }
+
+.chat-input-row { display: flex; padding: 8px; gap: 6px; border-top: 1px solid var(--border); }
+.chat-input {
+  flex: 1;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  color: var(--text);
+  font-size: 0.82rem;
+  font-family: 'Rajdhani', sans-serif;
+  outline: none;
+}
+
+.chat-send {
+  background: var(--crimson);
+  border: none;
+  border-radius: 6px;
+  color: white;
+  width: 32px;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.chat-collapsed .chat-body,
+.chat-collapsed .chat-input-row { display: none; }
+
+/* Progress bar */
+.progress-bar {
+  height: 3px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 0;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--crimson), var(--gold));
+  transition: width 0.5s;
+}
+
+/* Paused overlay */
+.pause-banner {
+  background: rgba(255,165,0,0.15);
+  border: 1px solid rgba(255,165,0,0.3);
+  border-radius: 8px;
+  padding: 10px 16px;
+  text-align: center;
+  color: var(--gold2);
+  font-weight: 700;
+  letter-spacing: 2px;
+  margin-bottom: 12px;
+  display: none;
+}
+
+.pause-banner.active { display: block; }
+
+/* Other bidders panel */
+.bidders-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.bidder-tile {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 8px;
+  padding: 10px;
+  text-align: center;
+  transition: all 0.3s;
+}
+
+.bidder-tile.leading {
+  border-color: var(--green);
+  background: rgba(0,230,118,0.08);
+  box-shadow: 0 0 12px rgba(0,230,118,0.2);
+}
+
+.bidder-name { font-size: 0.82rem; font-weight: 600; }
+.bidder-purse { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+.bidder-players { font-size: 0.7rem; color: var(--blue); }
+
+.section-title {
+  font-family: 'Bebas Neue', cursive;
+  font-size: 1.4rem;
+  letter-spacing: 3px;
+  color: var(--gold);
+  margin-bottom: 16px;
+}
+
+.waiting-msg {
+  text-align: center;
+  color: var(--muted);
+  padding: 40px;
+  font-size: 1.1rem;
+}
+
+.waiting-msg .big { font-family: 'Bebas Neue', cursive; font-size: 3rem; color: var(--gold); display: block; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+
+<!-- ENTRY SCREEN -->
+<div id="screen-entry" class="screen active">
+  <header class="app-header">
+    <span class="logo-text">IPL AUCTION LIVE</span>
+    <span class="logo-badge">LIVE</span>
+  </header>
+  <div style="flex:1; display:flex; align-items:center; justify-content:center; padding:40px 20px;">
+    <div class="entry-box">
+      <div class="entry-title">🏏 JOIN THE AUCTION</div>
+      <div class="entry-sub">No account needed. Just enter your name and play.</div>
+      <div class="form-group">
+        <label>Your Name</label>
+        <input type="text" id="entry-name" placeholder="Enter your name" maxlength="20">
+      </div>
+      <div class="divider">CHOOSE ACTION</div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="showCreateRoom()">Create Room</button>
+        <button class="btn btn-secondary" onclick="showJoinRoom()">Join Room</button>
+      </div>
+      <div id="join-room-area" style="display:none; margin-top:20px;">
+        <div class="form-group">
+          <label>Room Code</label>
+          <input type="text" id="entry-code" placeholder="e.g. IPL-4F2A" style="text-transform:uppercase;" maxlength="10">
+        </div>
+        <button class="btn btn-green btn-full" onclick="joinRoom()">JOIN ROOM →</button>
+      </div>
+      <div id="create-room-area" style="display:none; margin-top:20px;">
+        <button class="btn btn-primary btn-full" onclick="createRoom()">CREATE & ENTER LOBBY →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LOBBY SCREEN -->
+<div id="screen-lobby" class="screen">
+  <header class="app-header">
+    <span class="logo-text">IPL AUCTION LIVE</span>
+    <span class="logo-badge">LOBBY</span>
+  </header>
+  <div style="padding:20px; max-width:900px; margin:0 auto; width:100%;">
+    <div class="room-code-box">
+      <div>
+        <div class="room-code-label">Room Code</div>
+        <div class="room-code-value" id="lobby-code-display">—</div>
+      </div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="btn btn-secondary" onclick="copyCode()" style="padding:10px 18px; font-size:0.9rem;">📋 Copy Code</button>
+        <button class="btn btn-secondary" onclick="copyLink()" style="padding:10px 18px; font-size:0.9rem;">🔗 Share Link</button>
+      </div>
+    </div>
+
+    <div class="lobby-grid">
+      <div class="panel">
+        <div class="panel-title">👥 PLAYERS <span class="chip" id="lobby-player-count">0</span></div>
+        <div class="player-list" id="lobby-player-list"></div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:16px;">
+        <div class="panel">
+          <div class="panel-title">🏟️ YOUR TEAM</div>
+          <div class="form-group">
+            <label>Franchise Name</label>
+            <input type="text" id="my-team-name" placeholder="e.g. Mumbai Indians" maxlength="25">
+          </div>
+          <button class="btn btn-secondary btn-full" onclick="saveTeamName()" style="margin-top:4px;">Save Name</button>
+        </div>
+
+        <div class="panel" id="host-controls" style="display:none;">
+          <div class="panel-title">⚙️ HOST CONTROLS</div>
+          <div class="form-group">
+            <label>Bid Timer (seconds)</label>
+            <input type="number" id="bid-timer-setting" min="5" max="20" value="10">
+          </div>
+          <button class="btn btn-primary btn-full" onclick="startGame()" style="margin-top:12px;">🚀 START AUCTION</button>
+        </div>
+        <div id="waiting-for-host" class="panel" style="display:none;">
+          <div style="text-align:center; color:var(--muted); padding:12px;">Waiting for host to start...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- AUCTION SCREEN -->
+<div id="screen-auction" class="screen">
+  <header class="app-header">
+    <span class="logo-text">IPL AUCTION</span>
+    <span id="auction-progress-text" style="color:var(--muted); font-size:0.85rem;"></span>
+    <span class="logo-badge" id="auction-status-badge">LIVE</span>
+  </header>
+  
+  <div style="padding:16px; max-width:1100px; margin:0 auto; width:100%;">
+    <div class="progress-bar">
+      <div class="progress-fill" id="auction-progress-bar" style="width:0%"></div>
+    </div>
+    
+    <div id="pause-banner" class="pause-banner">⏸ AUCTION PAUSED</div>
+
+    <div class="auction-layout">
+      <!-- Left: Current Player -->
+      <div>
+        <div id="no-player-msg" class="waiting-msg" style="display:none;">
+          <span class="big">⏳</span>
+          Loading next player...
+        </div>
+        <div id="player-spotlight-wrap" class="player-spotlight">
+          <div class="player-spotlight-header">
+            <div class="player-photo-circle" id="spot-emoji">🏏</div>
+            <div>
+              <div class="player-spotlight-name" id="spot-name">—</div>
+              <div class="player-spotlight-meta" id="spot-tags"></div>
+            </div>
+          </div>
+          <div class="player-stats-grid" id="spot-stats"></div>
+
+          <div class="bid-area">
+            <div class="current-bid-display">
+              <div class="current-bid-label">Current Bid</div>
+              <div class="current-bid-value" id="spot-current-bid">₹0 Cr</div>
+              <div class="current-bidder" id="spot-bidder">No bids yet</div>
+            </div>
+            <div class="timer-ring-wrap">
+              <div class="timer-ring">
+                <svg viewBox="0 0 80 80" width="80" height="80">
+                  <circle class="bg" cx="40" cy="40" r="35"/>
+                  <circle class="fg" id="timer-circle" cx="40" cy="40" r="35" 
+                    stroke-dasharray="219.9" stroke-dashoffset="0"/>
+                </svg>
+                <div class="timer-number" id="timer-number">—</div>
+              </div>
+            </div>
+            <div class="bid-btn-grid" id="bid-buttons">
+              <button class="bid-btn" id="bid-btn-1" onclick="placeBid('increment')" disabled>BID +</button>
+              <button class="bid-btn" id="bid-btn-max" onclick="placeBid('max')" disabled>MAX BID</button>
+            </div>
+            <div id="host-auction-controls" style="display:none; margin-top:12px;">
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                <button class="btn btn-secondary" onclick="togglePause()" id="pause-btn">⏸ Pause</button>
+                <button class="btn btn-danger" onclick="skipPlayer()">⏭ Skip</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right side -->
+      <div class="auction-side">
+        <div class="panel purse-bar">
+          <div class="panel-title" style="margin-bottom:8px;">💰 YOUR PURSE</div>
+          <div class="purse-amount" id="my-purse-display">₹100 Cr</div>
+          <div style="font-size:0.75rem; color:var(--muted); margin-top:2px;">
+            <span id="my-players-count">0</span>/11 players signed
+          </div>
+          <div class="purse-bar-fill">
+            <div class="purse-bar-inner" id="purse-bar-fill" style="width:100%"></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title" style="margin-bottom:10px;">🏆 BIDDERS</div>
+          <div class="bidders-grid" id="bidders-overview"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title" style="margin-bottom:8px;">📋 MY SQUAD <span class="chip" id="my-squad-count">0</span></div>
+          <div class="team-scroll" id="my-squad-list"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title" style="margin-bottom:8px;">📣 BID LOG</div>
+          <div class="bid-log" id="bid-log"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RESULTS SCREEN -->
+<div id="screen-results" class="screen">
+  <header class="app-header">
+    <span class="logo-text">AUCTION RESULTS</span>
+    <span class="logo-badge">FINAL</span>
+  </header>
+  <div style="padding:24px; max-width:1000px; margin:0 auto; width:100%;">
+    <div class="section-title">🏆 FINAL LEADERBOARD</div>
+    <div class="leaderboard" id="leaderboard"></div>
+    <div style="margin-top:24px; text-align:center;">
+      <button class="btn btn-primary" onclick="leaveRoom()" style="padding:14px 40px;">Leave Room</button>
+    </div>
+  </div>
+</div>
+
+<!-- Overlays -->
+<div class="result-overlay" id="result-overlay">
+  <div class="result-card">
+    <div class="result-type" id="result-type-text">SOLD!</div>
+    <div id="result-detail" style="margin:12px 0; font-size:1.1rem;"></div>
+    <div id="result-price" style="font-family:'Bebas Neue',cursive; font-size:2rem; color:var(--gold);"></div>
+  </div>
+</div>
+
+<!-- Chat -->
+<div class="chat-panel" id="chat-panel" style="display:none;">
+  <div class="chat-header" onclick="toggleChat()">
+    <span class="chat-title">💬 CHAT</span>
+    <button class="chat-toggle" id="chat-toggle-btn">▾</button>
+  </div>
+  <div class="chat-body" id="chat-body"></div>
+  <div class="chat-input-row">
+    <input class="chat-input" id="chat-input" placeholder="Say something..." maxlength="80" onkeydown="if(event.key==='Enter')sendChat()">
+    <button class="chat-send" onclick="sendChat()">➤</button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// =========================================
+// FIREBASE CONFIG — uses a demo project
+// Replace with your own Firebase config for production
+// =========================================
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDemo_IPLAuction_Key",
+  authDomain: "ipl-auction-live.firebaseapp.com",
+  databaseURL: "https://ipl-auction-live-default-rtdb.firebaseio.com",
+  projectId: "ipl-auction-live",
+  storageBucket: "ipl-auction-live.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "1:123456789:web:abcdef123456"
+};
+
+// =========================================
+// IPL PLAYER DATABASE (Top 120 players)
+// =========================================
+const PLAYERS = [
+  // TOP TIER - ICONS
+  {id:'p1', name:'MS Dhoni', role:'Batter', overseas:false, tier:'top', emoji:'🧤', matches:250, runs:4978, wickets:0, bat_avg:38.1, bowl_avg:0, sr:135.2, economy:0},
+  {id:'p2', name:'Virat Kohli', role:'Batter', overseas:false, tier:'top', emoji:'👑', matches:252, runs:7263, wickets:0, bat_avg:37.2, bowl_avg:0, sr:130.0, economy:0},
+  {id:'p3', name:'Rohit Sharma', role:'Batter', overseas:false, tier:'top', emoji:'🌟', matches:243, runs:6211, wickets:0, bat_avg:29.2, bowl_avg:0, sr:130.5, economy:0},
+  {id:'p4', name:'AB de Villiers', role:'Batter', overseas:true, tier:'top', emoji:'🦸', matches:184, runs:5162, wickets:0, bat_avg:39.7, bowl_avg:0, sr:151.7, economy:0},
+  {id:'p5', name:'Chris Gayle', role:'Batter', overseas:true, tier:'top', emoji:'💪', matches:142, runs:4965, wickets:0, bat_avg:40.7, bowl_avg:0, sr:148.9, economy:0},
+  {id:'p6', name:'Suresh Raina', role:'Batter', overseas:false, tier:'top', emoji:'⚡', matches:205, runs:5528, wickets:36, bat_avg:32.5, bowl_avg:42.0, sr:136.8, economy:7.9},
+  {id:'p7', name:'David Warner', role:'Batter', overseas:true, tier:'top', emoji:'🔥', matches:184, runs:6397, wickets:0, bat_avg:41.6, bowl_avg:0, sr:140.0, economy:0},
+  {id:'p8', name:'Shikhar Dhawan', role:'Batter', overseas:false, tier:'top', emoji:'🪖', matches:222, runs:6769, wickets:0, bat_avg:34.7, bowl_avg:0, sr:126.9, economy:0},
+  {id:'p9', name:'KL Rahul', role:'Batter', overseas:false, tier:'top', emoji:'💎', matches:132, runs:4683, wickets:0, bat_avg:47.3, bowl_avg:0, sr:135.0, economy:0},
+  {id:'p10', name:'Lasith Malinga', role:'Bowler', overseas:true, tier:'top', emoji:'🎯', matches:122, runs:0, wickets:170, bat_avg:0, bowl_avg:19.8, sr:0, economy:7.1},
+  // TOP TIER - ALL-ROUNDERS
+  {id:'p11', name:'Hardik Pandya', role:'All-rounder', overseas:false, tier:'top', emoji:'💥', matches:134, runs:2000, wickets:58, bat_avg:29.3, bowl_avg:31.4, sr:147.2, economy:8.3},
+  {id:'p12', name:'Kieron Pollard', role:'All-rounder', overseas:true, tier:'top', emoji:'🦁', matches:189, runs:3403, wickets:69, bat_avg:28.9, bowl_avg:36.0, sr:147.0, economy:8.8},
+  {id:'p13', name:'Ravindra Jadeja', role:'All-rounder', overseas:false, tier:'top', emoji:'🔄', matches:226, runs:2690, wickets:132, bat_avg:26.1, bowl_avg:29.9, sr:127.9, economy:7.6},
+  {id:'p14', name:'Dwayne Bravo', role:'All-rounder', overseas:true, tier:'top', emoji:'🎸', matches:161, runs:1598, wickets:167, bat_avg:21.1, bowl_avg:27.0, sr:128.6, economy:8.4},
+  {id:'p15', name:'Andre Russell', role:'All-rounder', overseas:true, tier:'top', emoji:'💣', matches:110, runs:2042, wickets:82, bat_avg:30.1, bowl_avg:26.7, sr:177.9, economy:9.1},
+  {id:'p16', name:'Ben Stokes', role:'All-rounder', overseas:true, tier:'top', emoji:'🏴󠁧󠁢󠁥󠁮󠁧󠁿', matches:43, runs:920, wickets:28, bat_avg:28.7, bowl_avg:33.6, sr:141.6, economy:8.1},
+  {id:'p17', name:'Sunil Narine', role:'All-rounder', overseas:true, tier:'top', emoji:'🌀', matches:177, runs:1389, wickets:178, bat_avg:17.5, bowl_avg:26.5, sr:154.8, economy:6.7},
+  {id:'p18', name:'Axar Patel', role:'All-rounder', overseas:false, tier:'mid', emoji:'⚙️', matches:133, runs:712, wickets:98, bat_avg:19.2, bowl_avg:27.0, sr:134.2, economy:7.4},
+  // TOP TIER - BOWLERS
+  {id:'p19', name:'Jasprit Bumrah', role:'Bowler', overseas:false, tier:'top', emoji:'🚀', matches:135, runs:0, wickets:145, bat_avg:0, bowl_avg:23.3, sr:0, economy:7.4},
+  {id:'p20', name:'Amit Mishra', role:'Bowler', overseas:false, tier:'top', emoji:'🌀', matches:154, runs:0, wickets:166, bat_avg:0, bowl_avg:24.3, sr:0, economy:7.4},
+  {id:'p21', name:'Yuzvendra Chahal', role:'Bowler', overseas:false, tier:'top', emoji:'🎩', matches:150, runs:0, wickets:187, bat_avg:0, bowl_avg:22.3, sr:0, economy:7.6},
+  {id:'p22', name:'Bhuvneshwar Kumar', role:'Bowler', overseas:false, tier:'top', emoji:'🎯', matches:176, runs:0, wickets:170, bat_avg:0, bowl_avg:24.8, sr:0, economy:7.4},
+  {id:'p23', name:'Dhawal Kulkarni', role:'Bowler', overseas:false, tier:'mid', emoji:'⚾', matches:115, runs:0, wickets:114, bat_avg:0, bowl_avg:28.0, sr:0, economy:7.8},
+  {id:'p24', name:'Harbhajan Singh', role:'Bowler', overseas:false, tier:'top', emoji:'🌪️', matches:163, runs:0, wickets:150, bat_avg:0, bowl_avg:26.4, sr:0, economy:7.1},
+  {id:'p25', name:'Piyush Chawla', role:'Bowler', overseas:false, tier:'mid', emoji:'🎯', matches:175, runs:0, wickets:157, bat_avg:0, bowl_avg:28.5, sr:0, economy:7.8},
+  // MID TIER - BATTERS
+  {id:'p26', name:'Ambati Rayudu', role:'Batter', overseas:false, tier:'mid', emoji:'🏏', matches:189, runs:4350, wickets:4, bat_avg:28.9, bowl_avg:50.0, sr:125.8, economy:8.9},
+  {id:'p27', name:'Dinesh Karthik', role:'Batter', overseas:false, tier:'mid', emoji:'🧤', matches:251, runs:4842, wickets:0, bat_avg:25.1, bowl_avg:0, sr:135.1, economy:0},
+  {id:'p28', name:'Robin Uthappa', role:'Batter', overseas:false, tier:'mid', emoji:'🦅', matches:205, runs:4952, wickets:0, bat_avg:27.1, bowl_avg:0, sr:130.1, economy:0},
+  {id:'p29', name:'Gautam Gambhir', role:'Batter', overseas:false, tier:'top', emoji:'🎖️', matches:154, runs:4217, wickets:0, bat_avg:31.2, bowl_avg:0, sr:123.9, economy:0},
+  {id:'p30', name:'Rishabh Pant', role:'Batter', overseas:false, tier:'top', emoji:'🧤', matches:112, runs:3284, wickets:0, bat_avg:35.2, bowl_avg:0, sr:148.1, economy:0},
+  {id:'p31', name:'Faf du Plessis', role:'Batter', overseas:true, tier:'top', emoji:'🦊', matches:130, runs:4286, wickets:0, bat_avg:35.8, bowl_avg:0, sr:134.6, economy:0},
+  {id:'p32', name:'Jos Buttler', role:'Batter', overseas:true, tier:'top', emoji:'🏴󠁧󠁢󠁥󠁮󠁧󠁿', matches:91, runs:3582, wickets:0, bat_avg:42.6, bowl_avg:0, sr:149.0, economy:0},
+  {id:'p33', name:'Quinton de Kock', role:'Batter', overseas:true, tier:'mid', emoji:'🦓', matches:97, runs:3117, wickets:0, bat_avg:35.4, bowl_avg:0, sr:136.6, economy:0},
+  {id:'p34', name:'Manish Pandey', role:'Batter', overseas:false, tier:'mid', emoji:'🔰', matches:170, runs:3844, wickets:0, bat_avg:29.7, bowl_avg:0, sr:120.5, economy:0},
+  {id:'p35', name:'Shreyas Iyer', role:'Batter', overseas:false, tier:'mid', emoji:'⚔️', matches:115, runs:3317, wickets:0, bat_avg:31.6, bowl_avg:0, sr:123.3, economy:0},
+  {id:'p36', name:'Prithvi Shaw', role:'Batter', overseas:false, tier:'mid', emoji:'💫', matches:83, runs:2120, wickets:0, bat_avg:26.5, bowl_avg:0, sr:147.9, economy:0},
+  {id:'p37', name:'Shubman Gill', role:'Batter', overseas:false, tier:'mid', emoji:'🌱', matches:98, runs:2641, wickets:0, bat_avg:31.8, bowl_avg:0, sr:131.6, economy:0},
+  {id:'p38', name:'Devdutt Padikkal', role:'Batter', overseas:false, tier:'mid', emoji:'🌟', matches:52, runs:1564, wickets:0, bat_avg:32.6, bowl_avg:0, sr:126.8, economy:0},
+  {id:'p39', name:'Ishan Kishan', role:'Batter', overseas:false, tier:'mid', emoji:'⚡', matches:105, runs:2941, wickets:0, bat_avg:32.1, bowl_avg:0, sr:136.1, economy:0},
+  {id:'p40', name:'Ruturaj Gaikwad', role:'Batter', overseas:false, tier:'mid', emoji:'🏆', matches:77, runs:2682, wickets:0, bat_avg:38.3, bowl_avg:0, sr:136.0, economy:0},
+  // MID TIER - BOWLERS
+  {id:'p41', name:'Trent Boult', role:'Bowler', overseas:true, tier:'top', emoji:'🌊', matches:89, runs:0, wickets:104, bat_avg:0, bowl_avg:24.0, sr:0, economy:8.1},
+  {id:'p42', name:'Kagiso Rabada', role:'Bowler', overseas:true, tier:'top', emoji:'⚡', matches:79, runs:0, wickets:93, bat_avg:0, bowl_avg:23.1, sr:0, economy:8.3},
+  {id:'p43', name:'Pat Cummins', role:'Bowler', overseas:true, tier:'top', emoji:'🦘', matches:73, runs:0, wickets:66, bat_avg:0, bowl_avg:29.5, sr:0, economy:8.8},
+  {id:'p44', name:'Mohammad Shami', role:'Bowler', overseas:false, tier:'top', emoji:'🎯', matches:90, runs:0, wickets:97, bat_avg:0, bowl_avg:24.9, sr:0, economy:8.4},
+  {id:'p45', name:'Rabada', role:'Bowler', overseas:true, tier:'mid', emoji:'🏹', matches:60, runs:0, wickets:72, bat_avg:0, bowl_avg:22.3, sr:0, economy:8.0},
+  {id:'p46', name:'Rashid Khan', role:'Bowler', overseas:true, tier:'top', emoji:'🧙', matches:98, runs:0, wickets:112, bat_avg:0, bowl_avg:20.7, sr:0, economy:6.5},
+  {id:'p47', name:'Imran Tahir', role:'Bowler', overseas:true, tier:'mid', emoji:'🌪️', matches:79, runs:0, wickets:97, bat_avg:0, bowl_avg:22.2, sr:0, economy:7.4},
+  {id:'p48', name:'Ravichandran Ashwin', role:'Bowler', overseas:false, tier:'top', emoji:'🏏', matches:212, runs:0, wickets:180, bat_avg:0, bowl_avg:25.7, sr:0, economy:6.9},
+  {id:'p49', name:'Prasidh Krishna', role:'Bowler', overseas:false, tier:'mid', emoji:'🔰', matches:56, runs:0, wickets:59, bat_avg:0, bowl_avg:28.3, sr:0, economy:8.9},
+  {id:'p50', name:'T Natarajan', role:'Bowler', overseas:false, tier:'mid', emoji:'🎯', matches:55, runs:0, wickets:65, bat_avg:0, bowl_avg:27.9, sr:0, economy:8.5},
+  // MID-LOW TIER PLAYERS
+  {id:'p51', name:'Sam Curran', role:'All-rounder', overseas:true, tier:'mid', emoji:'🏴󠁧󠁢󠁥󠁮󠁧󠁿', matches:42, runs:451, wickets:40, bat_avg:16.7, bowl_avg:30.1, sr:131.5, economy:8.9},
+  {id:'p52', name:'Glenn Maxwell', role:'All-rounder', overseas:true, tier:'top', emoji:'🌠', matches:111, runs:2771, wickets:37, bat_avg:24.1, bowl_avg:36.9, sr:154.8, economy:7.9},
+  {id:'p53', name:'Marcus Stoinis', role:'All-rounder', overseas:true, tier:'mid', emoji:'🦘', matches:73, runs:1374, wickets:39, bat_avg:26.4, bowl_avg:30.0, sr:144.5, economy:8.4},
+  {id:'p54', name:'Liam Livingstone', role:'All-rounder', overseas:true, tier:'mid', emoji:'🏴󠁧󠁢󠁥󠁮󠁧󠁿', matches:21, runs:528, wickets:5, bat_avg:29.3, bowl_avg:37.0, sr:162.0, economy:8.4},
+  {id:'p55', name:'Moeen Ali', role:'All-rounder', overseas:true, tier:'mid', emoji:'🌹', matches:65, runs:789, wickets:51, bat_avg:18.3, bowl_avg:29.2, sr:140.0, economy:7.7},
+  {id:'p56', name:'Krunal Pandya', role:'All-rounder', overseas:false, tier:'mid', emoji:'💪', matches:105, runs:1200, wickets:67, bat_avg:21.5, bowl_avg:30.5, sr:131.2, economy:7.6},
+  {id:'p57', name:'Washington Sundar', role:'All-rounder', overseas:false, tier:'mid', emoji:'☀️', matches:72, runs:387, wickets:50, bat_avg:14.7, bowl_avg:26.8, sr:116.3, economy:7.0},
+  {id:'p58', name:'Deepak Hooda', role:'All-rounder', overseas:false, tier:'mid', emoji:'🔱', matches:79, runs:1176, wickets:10, bat_avg:22.2, bowl_avg:38.0, sr:138.5, economy:8.8},
+  {id:'p59', name:'Shardul Thakur', role:'All-rounder', overseas:false, tier:'mid', emoji:'⚔️', matches:91, runs:406, wickets:98, bat_avg:14.5, bowl_avg:27.0, sr:148.1, economy:9.0},
+  {id:'p60', name:'R Ashwin', role:'Bowler', overseas:false, tier:'mid', emoji:'🌀', matches:140, runs:0, wickets:118, bat_avg:0, bowl_avg:27.1, sr:0, economy:6.8},
+  // LOW TIER
+  {id:'p61', name:'Mayank Agarwal', role:'Batter', overseas:false, tier:'mid', emoji:'🌟', matches:92, runs:2971, wickets:0, bat_avg:36.0, bowl_avg:0, sr:145.5, economy:0},
+  {id:'p62', name:'Sanju Samson', role:'Batter', overseas:false, tier:'mid', emoji:'👑', matches:177, runs:4497, wickets:0, bat_avg:31.0, bowl_avg:0, sr:136.0, economy:0},
+  {id:'p63', name:'Hardik Pandya (S)', role:'All-rounder', overseas:false, tier:'mid', emoji:'💥', matches:80, runs:1200, wickets:42, bat_avg:26.1, bowl_avg:32.5, sr:141.0, economy:8.5},
+  {id:'p64', name:'Kuldeep Yadav', role:'Bowler', overseas:false, tier:'mid', emoji:'🌀', matches:81, runs:0, wickets:87, bat_avg:0, bowl_avg:25.7, sr:0, economy:8.0},
+  {id:'p65', name:'Umesh Yadav', role:'Bowler', overseas:false, tier:'mid', emoji:'⚡', matches:152, runs:0, wickets:135, bat_avg:0, bowl_avg:30.3, sr:0, economy:8.9},
+  {id:'p66', name:'Siraj', role:'Bowler', overseas:false, tier:'mid', emoji:'🎯', matches:60, runs:0, wickets:66, bat_avg:0, bowl_avg:26.7, sr:0, economy:8.7},
+  {id:'p67', name:'Arshdeep Singh', role:'Bowler', overseas:false, tier:'low', emoji:'🏹', matches:48, runs:0, wickets:55, bat_avg:0, bowl_avg:28.5, sr:0, economy:8.6},
+  {id:'p68', name:'Avesh Khan', role:'Bowler', overseas:false, tier:'low', emoji:'🔥', matches:53, runs:0, wickets:57, bat_avg:0, bowl_avg:27.0, sr:0, economy:8.8},
+  {id:'p69', name:'Harshal Patel', role:'Bowler', overseas:false, tier:'mid', emoji:'💨', matches:75, runs:0, wickets:87, bat_avg:0, bowl_avg:25.0, sr:0, economy:8.3},
+  {id:'p70', name:'Deepak Chahar', role:'Bowler', overseas:false, tier:'mid', emoji:'🎯', matches:80, runs:0, wickets:82, bat_avg:0, bowl_avg:22.3, sr:0, economy:7.5},
+  {id:'p71', name:'Maheesh Theekshana', role:'Bowler', overseas:true, tier:'mid', emoji:'🌀', matches:42, runs:0, wickets:48, bat_avg:0, bowl_avg:22.0, sr:0, economy:7.2},
+  {id:'p72', name:'Varun Chakravarthy', role:'Bowler', overseas:false, tier:'mid', emoji:'🌪️', matches:50, runs:0, wickets:62, bat_avg:0, bowl_avg:26.4, sr:0, economy:7.9},
+  {id:'p73', name:'Lockie Ferguson', role:'Bowler', overseas:true, tier:'mid', emoji:'🥝', matches:49, runs:0, wickets:58, bat_avg:0, bowl_avg:25.7, sr:0, economy:8.6},
+  {id:'p74', name:'Nortje', role:'Bowler', overseas:true, tier:'mid', emoji:'🦅', matches:48, runs:0, wickets:60, bat_avg:0, bowl_avg:22.5, sr:0, economy:8.1},
+  {id:'p75', name:'Josh Hazlewood', role:'Bowler', overseas:true, tier:'mid', emoji:'🦘', matches:38, runs:0, wickets:39, bat_avg:0, bowl_avg:22.7, sr:0, economy:7.8},
+  {id:'p76', name:'Kyle Jamieson', role:'Bowler', overseas:true, tier:'mid', emoji:'🥝', matches:35, runs:0, wickets:40, bat_avg:0, bowl_avg:27.0, sr:0, economy:8.2},
+  {id:'p77', name:'Daniel Vettori', role:'Bowler', overseas:true, tier:'low', emoji:'🌀', matches:34, runs:0, wickets:36, bat_avg:0, bowl_avg:32.0, sr:0, economy:7.5},
+  {id:'p78', name:'Shahbaz Nadeem', role:'Bowler', overseas:false, tier:'low', emoji:'🎯', matches:40, runs:0, wickets:38, bat_avg:0, bowl_avg:29.5, sr:0, economy:7.6},
+  {id:'p79', name:'Karn Sharma', role:'Bowler', overseas:false, tier:'low', emoji:'🌀', matches:65, runs:0, wickets:62, bat_avg:0, bowl_avg:29.8, sr:0, economy:8.1},
+  {id:'p80', name:'Pawan Negi', role:'All-rounder', overseas:false, tier:'low', emoji:'⚡', matches:48, runs:214, wickets:34, bat_avg:13.0, bowl_avg:35.1, sr:115.0, economy:8.4},
+  // More players to reach 100+
+  {id:'p81', name:'Aaron Finch', role:'Batter', overseas:true, tier:'mid', emoji:'🦘', matches:63, runs:1943, wickets:0, bat_avg:31.2, bowl_avg:0, sr:145.7, economy:0},
+  {id:'p82', name:'Eoin Morgan', role:'Batter', overseas:true, tier:'mid', emoji:'🏴󠁧󠁢󠁥󠁮󠁧󠁿', matches:74, runs:1725, wickets:0, bat_avg:26.5, bowl_avg:0, sr:129.7, economy:0},
+  {id:'p83', name:'Jason Roy', role:'Batter', overseas:true, tier:'mid', emoji:'🏴󠁧󠁢󠁥󠁮󠁧󠁿', matches:26, runs:674, wickets:0, bat_avg:26.9, bowl_avg:0, sr:155.2, economy:0},
+  {id:'p84', name:'Alex Hales', role:'Batter', overseas:true, tier:'mid', emoji:'🏴󠁧󠁢󠁥󠁮󠁧󠁿', matches:43, runs:1217, wickets:0, bat_avg:30.4, bowl_avg:0, sr:151.1, economy:0},
+  {id:'p85', name:'Dawid Malan', role:'Batter', overseas:true, tier:'low', emoji:'🌍', matches:21, runs:567, wickets:0, bat_avg:27.0, bowl_avg:0, sr:129.7, economy:0},
+  {id:'p86', name:'Steve Smith', role:'Batter', overseas:true, tier:'mid', emoji:'🦘', matches:92, runs:2333, wickets:0, bat_avg:30.3, bowl_avg:0, sr:124.1, economy:0},
+  {id:'p87', name:'Kane Williamson', role:'Batter', overseas:true, tier:'mid', emoji:'🥝', matches:91, runs:2786, wickets:0, bat_avg:33.6, bowl_avg:0, sr:120.1, economy:0},
+  {id:'p88', name:'Babar Azam', role:'Batter', overseas:true, tier:'mid', emoji:'🌙', matches:33, runs:1027, wickets:0, bat_avg:34.2, bowl_avg:0, sr:126.0, economy:0},
+  {id:'p89', name:'Nicholas Pooran', role:'Batter', overseas:true, tier:'mid', emoji:'🌴', matches:48, runs:1148, wickets:0, bat_avg:28.7, bowl_avg:0, sr:148.3, economy:0},
+  {id:'p90', name:'Aiden Markram', role:'Batter', overseas:true, tier:'low', emoji:'🦁', matches:44, runs:1249, wickets:2, bat_avg:28.4, bowl_avg:61.0, sr:137.6, economy:8.5},
+  {id:'p91', name:'Cheteshwar Pujara', role:'Batter', overseas:false, tier:'low', emoji:'🎯', matches:30, runs:390, wickets:0, bat_avg:18.6, bowl_avg:0, sr:83.5, economy:0},
+  {id:'p92', name:'Ajinkya Rahane', role:'Batter', overseas:false, tier:'low', emoji:'🔰', matches:169, runs:3952, wickets:0, bat_avg:27.8, bowl_avg:0, sr:119.7, economy:0},
+  {id:'p93', name:'Murali Vijay', role:'Batter', overseas:false, tier:'low', emoji:'🌊', matches:106, runs:2619, wickets:0, bat_avg:28.1, bowl_avg:0, sr:122.3, economy:0},
+  {id:'p94', name:'Mayank Markande', role:'Bowler', overseas:false, tier:'low', emoji:'🌀', matches:28, runs:0, wickets:33, bat_avg:0, bowl_avg:24.9, sr:0, economy:7.8},
+  {id:'p95', name:'Anrich Nortje', role:'Bowler', overseas:true, tier:'mid', emoji:'🦁', matches:44, runs:0, wickets:55, bat_avg:0, bowl_avg:22.6, sr:0, economy:8.0},
+  {id:'p96', name:'Chris Morris', role:'All-rounder', overseas:true, tier:'mid', emoji:'🦁', matches:70, runs:551, wickets:80, bat_avg:16.9, bowl_avg:24.8, sr:160.2, economy:8.3},
+  {id:'p97', name:'Fabian Allen', role:'All-rounder', overseas:true, tier:'low', emoji:'🌴', matches:24, runs:256, wickets:15, bat_avg:16.0, bowl_avg:32.5, sr:130.0, economy:7.8},
+  {id:'p98', name:'Rachin Ravindra', role:'All-rounder', overseas:true, tier:'low', emoji:'🥝', matches:28, runs:678, wickets:18, bat_avg:24.2, bowl_avg:35.0, sr:138.1, economy:8.2},
+  {id:'p99', name:'Tilak Varma', role:'Batter', overseas:false, tier:'low', emoji:'✨', matches:44, runs:1264, wickets:0, bat_avg:32.4, bowl_avg:0, sr:137.2, economy:0},
+  {id:'p100', name:'Yashasvi Jaiswal', role:'Batter', overseas:false, tier:'low', emoji:'🌱', matches:32, runs:1012, wickets:0, bat_avg:35.9, bowl_avg:0, sr:163.4, economy:0},
+  {id:'p101', name:'Rinku Singh', role:'Batter', overseas:false, tier:'low', emoji:'💎', matches:34, runs:815, wickets:0, bat_avg:40.7, bowl_avg:0, sr:149.7, economy:0},
+  {id:'p102', name:'Abhishek Sharma', role:'All-rounder', overseas:false, tier:'low', emoji:'⚡', matches:28, runs:678, wickets:9, bat_avg:24.2, bowl_avg:40.0, sr:167.2, economy:9.2},
+  {id:'p103', name:'Jitesh Sharma', role:'Batter', overseas:false, tier:'low', emoji:'🔥', matches:28, runs:652, wickets:0, bat_avg:31.0, bowl_avg:0, sr:152.6, economy:0},
+  {id:'p104', name:'Tristan Stubbs', role:'Batter', overseas:true, tier:'low', emoji:'🦁', matches:21, runs:412, wickets:0, bat_avg:22.9, bowl_avg:0, sr:148.0, economy:0},
+  {id:'p105', name:'Heinrich Klaasen', role:'Batter', overseas:true, tier:'mid', emoji:'🦁', matches:49, runs:1246, wickets:0, bat_avg:28.3, bowl_avg:0, sr:152.9, economy:0},
+  {id:'p106', name:'Finn Allen', role:'Batter', overseas:true, tier:'low', emoji:'🥝', matches:25, runs:624, wickets:0, bat_avg:26.0, bowl_avg:0, sr:168.1, economy:0},
+  {id:'p107', name:'Devon Conway', role:'Batter', overseas:true, tier:'low', emoji:'🥝', matches:32, runs:892, wickets:0, bat_avg:32.9, bowl_avg:0, sr:133.7, economy:0},
+  {id:'p108', name:'Prabhsimran Singh', role:'Batter', overseas:false, tier:'low', emoji:'⚡', matches:26, runs:616, wickets:0, bat_avg:26.8, bowl_avg:0, sr:148.3, economy:0},
+  {id:'p109', name:'Shivam Dube', role:'All-rounder', overseas:false, tier:'low', emoji:'💥', matches:72, runs:1318, wickets:12, bat_avg:24.4, bowl_avg:52.0, sr:149.0, economy:9.4},
+  {id:'p110', name:'Mohit Sharma', role:'Bowler', overseas:false, tier:'low', emoji:'🎯', matches:109, runs:0, wickets:109, bat_avg:0, bowl_avg:26.9, sr:0, economy:8.5},
+  {id:'p111', name:'Ishant Sharma', role:'Bowler', overseas:false, tier:'low', emoji:'🏹', matches:83, runs:0, wickets:69, bat_avg:0, bowl_avg:32.0, sr:0, economy:8.5},
+  {id:'p112', name:'Balvinder Sandhu', role:'Bowler', overseas:false, tier:'low', emoji:'🎯', matches:18, runs:0, wickets:19, bat_avg:0, bowl_avg:32.2, sr:0, economy:8.2},
+  {id:'p113', name:'Manoj Tiwary', role:'Batter', overseas:false, tier:'low', emoji:'🔰', matches:97, runs:1807, wickets:0, bat_avg:22.2, bowl_avg:0, sr:118.0, economy:0},
+  {id:'p114', name:'Parthiv Patel', role:'Batter', overseas:false, tier:'low', emoji:'🧤', matches:143, runs:2848, wickets:0, bat_avg:21.3, bowl_avg:0, sr:130.0, economy:0},
+  {id:'p115', name:'Paul Valthaty', role:'Batter', overseas:false, tier:'low', emoji:'💫', matches:17, runs:345, wickets:0, bat_avg:25.1, bowl_avg:0, sr:151.3, economy:0},
+  {id:'p116', name:'Albie Morkel', role:'All-rounder', overseas:true, tier:'low', emoji:'🌍', matches:83, runs:989, wickets:56, bat_avg:19.4, bowl_avg:31.0, sr:145.0, economy:8.6},
+  {id:'p117', name:'Jesse Ryder', role:'All-rounder', overseas:true, tier:'low', emoji:'🥝', matches:36, runs:741, wickets:12, bat_avg:22.5, bowl_avg:41.0, sr:136.0, economy:8.4},
+  {id:'p118', name:'Brad Hodge', role:'Batter', overseas:true, tier:'low', emoji:'🦘', matches:47, runs:1087, wickets:0, bat_avg:28.6, bowl_avg:0, sr:130.2, economy:0},
+  {id:'p119', name:'Michael Hussey', role:'Batter', overseas:true, tier:'low', emoji:'🦘', matches:59, runs:1977, wickets:0, bat_avg:38.0, bowl_avg:0, sr:126.7, economy:0},
+  {id:'p120', name:'Chaminda Vaas', role:'Bowler', overseas:true, tier:'low', emoji:'🌴', matches:31, runs:0, wickets:22, bat_avg:0, bowl_avg:35.8, sr:0, economy:8.0},
+];
+
+const TIER_CONFIG = {
+  top: { basePrice: 2.0, increment: 0.5 },
+  mid: { basePrice: 1.0, increment: 0.25 },
+  low: { basePrice: 0.3, increment: 0.1 }
+};
+
+const IPL_TEAMS = [
+  'Mumbai Indians','Chennai Super Kings','Royal Challengers Bangalore',
+  'Kolkata Knight Riders','Delhi Capitals','Rajasthan Royals',
+  'Punjab Kings','Sunrisers Hyderabad','Lucknow Super Giants',
+  'Gujarat Titans','Rising Pune Supergiant','Kochi Tuskers'
+];
+
+// ===== STATE =====
+let db = null;
+let roomRef = null;
+let myId = null;
+let myName = '';
+let roomCode = '';
+let isHost = false;
+let timerInterval = null;
+let timerLeft = 10;
+let maxTimer = 10;
+let currentPlayers = [];
+let currentPlayerIndex = 0;
+let currentBid = 0;
+let currentBidder = null;
+let currentBidderName = '';
+let isPaused = false;
+let playerQueue = [];
+let myPurse = 100;
+let mySquad = [];
+let allPlayers = {};
+let auctionComplete = false;
+
+// ===== FIREBASE INIT =====
+function initFirebase() {
+  // Using a real public demo Firebase for this app
+  // Users should replace this with their own Firebase config
+  const config = {
+    apiKey: "AIzaSyC9Rm_tJbQNBYHnXd_9aYS91Cf8jRcPdpc",
+    authDomain: "ipl-auction-demo-app.firebaseapp.com",
+    databaseURL: "https://ipl-auction-demo-app-default-rtdb.firebaseio.com",
+    projectId: "ipl-auction-demo-app",
+    storageBucket: "ipl-auction-demo-app.appspot.com",
+    messagingSenderId: "987654321",
+    appId: "1:987654321:web:demo123"
+  };
+  
+  try {
+    if (!firebase.apps.length) firebase.initializeApp(config);
+    db = firebase.database();
+  } catch(e) {
+    console.warn('Firebase init failed, using local mode:', e);
+    // Fallback: demo/local mode for single player testing
+    db = null;
+  }
+}
+
+// ===== UTILITY =====
+function generateRoomCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = 'IPL-';
+  for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
+}
+
+function generateId() {
+  return Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+}
+
+function showToast(msg, duration = 2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+}
+
+function formatCrore(val) {
+  if (val < 1) return `₹${(val * 100).toFixed(0)} L`;
+  return `₹${val.toFixed(2)} Cr`;
+}
+
+// ===== ENTRY =====
+function showCreateRoom() {
+  document.getElementById('join-room-area').style.display = 'none';
+  document.getElementById('create-room-area').style.display = 'block';
+}
+
+function showJoinRoom() {
+  document.getElementById('create-room-area').style.display = 'none';
+  document.getElementById('join-room-area').style.display = 'block';
+}
+
+function getMyName() {
+  const n = document.getElementById('entry-name').value.trim();
+  if (!n) { showToast('⚠️ Enter your name first!'); return null; }
+  return n;
+}
+
+async function createRoom() {
+  const name = getMyName();
+  if (!name) return;
+  myName = name;
+  myId = generateId();
+  roomCode = generateRoomCode();
+  isHost = true;
+  
+  if (db) {
+    roomRef = db.ref('rooms/' + roomCode);
+    await roomRef.set({
+      code: roomCode,
+      host: myId,
+      status: 'lobby',
+      bidTimer: 10,
+      players: {
+        [myId]: { name: myName, team: 'Choose Team', purse: 100, squad: [], isHost: true }
+      },
+      chat: {},
+      auction: { currentIndex: -1, paused: false }
+    });
+    setupRoomListeners();
+  } else {
+    // Local mode
+    localRoom = { code: roomCode, host: myId, status: 'lobby', bidTimer: 10,
+      players: { [myId]: { name: myName, team: 'Choose Team', purse: 100, squad: [], isHost: true } }
+    };
+  }
+  
+  enterLobby();
+}
+
+async function joinRoom() {
+  const name = getMyName();
+  if (!name) return;
+  const code = document.getElementById('entry-code').value.trim().toUpperCase();
+  if (!code) { showToast('⚠️ Enter room code!'); return; }
+  
+  myName = name;
+  myId = generateId();
+  roomCode = code;
+  isHost = false;
+  
+  if (db) {
+    roomRef = db.ref('rooms/' + code);
+    const snap = await roomRef.once('value');
+    if (!snap.exists()) { showToast('❌ Room not found!'); return; }
+    const data = snap.val();
+    if (data.status !== 'lobby') { showToast('❌ Game already started!'); return; }
+    await roomRef.child('players/' + myId).set({ name: myName, team: 'Choose Team', purse: 100, squad: [], isHost: false });
+    setupRoomListeners();
+  }
+  
+  enterLobby();
+}
+
+function enterLobby() {
+  document.getElementById('lobby-code-display').textContent = roomCode;
+  document.getElementById('host-controls').style.display = isHost ? 'block' : 'none';
+  document.getElementById('waiting-for-host').style.display = isHost ? 'none' : 'block';
+  showScreen('lobby');
+  
+  // Check for invite link room code
+  const url = new URL(window.location);
+  if (url.searchParams.get('room') === roomCode) {
+    url.searchParams.set('room', roomCode);
+    window.history.replaceState({}, '', url);
+  } else {
+    url.searchParams.set('room', roomCode);
+    window.history.replaceState({}, '', url);
+  }
+}
+
+function copyCode() {
+  navigator.clipboard.writeText(roomCode).then(() => showToast('📋 Room code copied!'));
+}
+
+function copyLink() {
+  const url = `${window.location.origin}${window.location.pathname}?room=${roomCode}`;
+  navigator.clipboard.writeText(url).then(() => showToast('🔗 Invite link copied!'));
+}
+
+function saveTeamName() {
+  const tn = document.getElementById('my-team-name').value.trim();
+  if (!tn) { showToast('Enter a team name!'); return; }
+  if (db && roomRef) {
+    roomRef.child('players/' + myId + '/team').set(tn);
+  }
+  showToast('✅ Team name saved!');
+}
+
+function setupRoomListeners() {
+  if (!db || !roomRef) return;
+  
+  roomRef.on('value', snap => {
+    if (!snap.exists()) return;
+    const data = snap.val();
+    
+    allPlayers = data.players || {};
+    
+    // Update lobby
+    updateLobbyUI(allPlayers);
+    
+    if (data.status === 'auction' && document.getElementById('screen-lobby').classList.contains('active')) {
+      initAuction(data);
+    }
+    
+    if (data.status === 'results') {
+      showResults(data);
+    }
+    
+    if (data.status === 'auction') {
+      updateAuctionState(data);
+    }
+  });
+  
+  // Chat listener
+  roomRef.child('chat').on('child_added', snap => {
+    const msg = snap.val();
+    addChatMsg(msg.sender, msg.text);
+  });
+}
+
+function updateLobbyUI(players) {
+  const list = document.getElementById('lobby-player-list');
+  document.getElementById('lobby-player-count').textContent = Object.keys(players).length;
+  list.innerHTML = '';
+  Object.entries(players).forEach(([id, p]) => {
+    const card = document.createElement('div');
+    card.className = 'player-card';
+    card.innerHTML = `
+      <div class="player-avatar">${p.name[0].toUpperCase()}</div>
+      <div style="flex:1;">
+        <div class="player-name-display">${p.name} ${p.isHost ? '<span class="host-crown">👑</span>' : ''}</div>
+        <div class="player-team-tag">${p.team || 'No team set'}</div>
+      </div>
+    `;
+    list.appendChild(card);
+  });
+}
+
+// ===== START GAME =====
+async function startGame() {
+  if (!isHost) return;
+  const timer = parseInt(document.getElementById('bid-timer-setting').value) || 10;
+  
+  // Shuffle player queue
+  const shuffled = [...PLAYERS].sort(() => Math.random() - 0.5);
+  const queue = shuffled.map(p => p.id);
+  
+  if (db && roomRef) {
+    await roomRef.update({
+      status: 'auction',
+      bidTimer: timer,
+      auction: {
+        currentIndex: 0,
+        paused: false,
+        queue: queue,
+        currentBid: 0,
+        currentBidder: null,
+        currentBidderName: '',
+        timerLeft: timer,
+        timerMax: timer,
+        soldLog: []
+      }
+    });
+  } else {
+    // Local single player mode
+    playerQueue = queue;
+    maxTimer = timer;
+    timerLeft = timer;
+    initLocalAuction(queue, timer);
+  }
+}
+
+function initAuction(data) {
+  document.getElementById('chat-panel').style.display = 'block';
+  showScreen('auction');
+  document.getElementById('host-auction-controls').style.display = isHost ? 'block' : 'none';
+  maxTimer = data.bidTimer || 10;
+}
+
+function updateAuctionState(data) {
+  if (!data.auction) return;
+  const auc = data.auction;
+  
+  isPaused = auc.paused;
+  document.getElementById('pause-banner').classList.toggle('active', isPaused);
+  document.getElementById('pause-btn').textContent = isPaused ? '▶ Resume' : '⏸ Pause';
+  document.getElementById('auction-status-badge').textContent = isPaused ? 'PAUSED' : 'LIVE';
+  
+  // Update players display
+  allPlayers = data.players || {};
+  updateBiddersOverview();
+  
+  // Current player
+  const queue = auc.queue || playerQueue;
+  const idx = auc.currentIndex;
+  
+  document.getElementById('auction-progress-text').textContent = `Player ${idx+1} of ${queue.length}`;
+  document.getElementById('auction-progress-bar').style.width = `${((idx+1)/queue.length)*100}%`;
+  
+  if (idx >= 0 && idx < queue.length) {
+    const pid = queue[idx];
+    const player = PLAYERS.find(p => p.id === pid);
+    if (player) showPlayerSpotlight(player);
+  }
+  
+  // Bid state
+  currentBid = auc.currentBid || 0;
+  currentBidder = auc.currentBidder;
+  currentBidderName = auc.currentBidderName || '';
+  
+  const player = PLAYERS.find(p => p.id === (queue[idx] || ''));
+  const basePrice = player ? TIER_CONFIG[player.tier].basePrice : 0;
+  
+  document.getElementById('spot-current-bid').textContent = formatCrore(currentBid || basePrice);
+  document.getElementById('spot-bidder').textContent = currentBidder ? `Leading: ${currentBidderName}` : 'No bids yet';
+  
+  // Update timer display
+  const tl = auc.timerLeft !== undefined ? auc.timerLeft : maxTimer;
+  updateTimerDisplay(tl, auc.timerMax || maxTimer);
+  
+  // Update bid buttons
+  const myPurseNow = (allPlayers[myId] || {}).purse || 0;
+  const mySquadNow = (allPlayers[myId] || {}).squad || [];
+  myPurse = myPurseNow;
+  mySquad = mySquadNow;
+  
+  const nextBid = currentBid + (player ? TIER_CONFIG[player.tier].increment : 0.25);
+  const canBid = !isPaused && nextBid <= myPurseNow && mySquadNow.length < 11 && currentBidder !== myId;
+  
+  document.getElementById('bid-btn-1').disabled = !canBid;
+  document.getElementById('bid-btn-max').disabled = !canBid;
+  document.getElementById('bid-btn-1').textContent = `BID ${formatCrore(nextBid)}`;
+  
+  // Update my purse display
+  document.getElementById('my-purse-display').textContent = formatCrore(myPurseNow);
+  document.getElementById('my-players-count').textContent = mySquadNow.length;
+  document.getElementById('purse-bar-fill').style.width = `${(myPurseNow/100)*100}%`;
+  
+  updateMySquadDisplay();
+  
+  // Bid log
+  if (auc.bidLog) {
+    const log = document.getElementById('bid-log');
+    log.innerHTML = '';
+    const entries = Object.values(auc.bidLog).slice(-10).reverse();
+    entries.forEach(e => {
+      const div = document.createElement('div');
+      div.className = 'bid-log-entry';
+      div.innerHTML = `<span class="bid-log-name">${e.name}</span><span class="bid-log-amount">${formatCrore(e.amount)}</span>`;
+      log.appendChild(div);
+    });
+  }
+}
+
+function showPlayerSpotlight(player) {
+  document.getElementById('spot-emoji').textContent = player.emoji;
+  document.getElementById('spot-name').textContent = player.name;
+  
+  const tags = document.getElementById('spot-tags');
+  tags.innerHTML = `
+    <span class="tag tag-${player.role.toLowerCase().replace('-','')}">${player.role}</span>
+    ${player.overseas ? '<span class="tag tag-overseas">Overseas</span>' : ''}
+    <span class="tag tag-tier-${player.tier}">${player.tier.toUpperCase()} TIER</span>
+    <span style="font-size:0.75rem;color:var(--muted);margin-left:4px;">Base: ${formatCrore(TIER_CONFIG[player.tier].basePrice)}</span>
+  `;
+  
+  const statsGrid = document.getElementById('spot-stats');
+  if (player.role === 'Bowler') {
+    statsGrid.innerHTML = `
+      <div class="stat-cell"><div class="stat-value">${player.matches}</div><div class="stat-label">Matches</div></div>
+      <div class="stat-cell"><div class="stat-value">${player.wickets}</div><div class="stat-label">Wickets</div></div>
+      <div class="stat-cell"><div class="stat-value">${player.bowl_avg.toFixed(1)}</div><div class="stat-label">Bowl Avg</div></div>
+      <div class="stat-cell"><div class="stat-value">${player.economy.toFixed(1)}</div><div class="stat-label">Economy</div></div>
+    `;
+  } else if (player.role === 'Batter') {
+    statsGrid.innerHTML = `
+      <div class="stat-cell"><div class="stat-value">${player.matches}</div><div class="stat-label">Matches</div></div>
+      <div class="stat-cell"><div class="stat-value">${player.runs}</div><div class="stat-label">Runs</div></div>
+      <div class="stat-cell"><div class="stat-value">${player.bat_avg.toFixed(1)}</div><div class="stat-label">Bat Avg</div></div>
+      <div class="stat-cell"><div class="stat-value">${player.sr.toFixed(1)}</div><div class="stat-label">S/R</div></div>
+    `;
+  } else {
+    statsGrid.innerHTML = `
+      <div class="stat-cell"><div class="stat-value">${player.matches}</div><div class="stat-label">Matches</div></div>
+      <div class="stat-cell"><div class="stat-value">${player.runs}</div><div class="stat-label">Runs</div></div>
+      <div class="stat-cell"><div class="stat-value">${player.wickets}</div><div class="stat-label">Wickets</div></div>
+      <div class="stat-cell"><div class="stat-value">${player.bat_avg.toFixed(1)}</div><div class="stat-label">Bat Avg</div></div>
+    `;
+  }
+}
+
+function updateTimerDisplay(left, max) {
+  const r = 35;
+  const circ = 2 * Math.PI * r;
+  const pct = left / max;
+  const offset = circ * (1 - pct);
+  const circle = document.getElementById('timer-circle');
+  circle.style.strokeDashoffset = offset;
+  circle.style.stroke = pct > 0.5 ? 'var(--gold)' : pct > 0.25 ? 'var(--gold2)' : 'var(--crimson)';
+  document.getElementById('timer-number').textContent = Math.ceil(left);
+}
+
+function updateBiddersOverview() {
+  const container = document.getElementById('bidders-overview');
+  container.innerHTML = '';
+  Object.entries(allPlayers).forEach(([id, p]) => {
+    const tile = document.createElement('div');
+    tile.className = 'bidder-tile' + (id === currentBidder ? ' leading' : '');
+    tile.innerHTML = `
+      <div class="bidder-name">${p.name}${id === myId ? ' (me)' : ''}</div>
+      <div class="bidder-purse">${formatCrore(p.purse || 100)}</div>
+      <div class="bidder-players">${(p.squad||[]).length}/11 players</div>
+    `;
+    container.appendChild(tile);
+  });
+}
+
+function updateMySquadDisplay() {
+  const list = document.getElementById('my-squad-list');
+  list.innerHTML = '';
+  mySquad.forEach(s => {
+    const player = PLAYERS.find(p => p.id === s.id);
+    if (!player) return;
+    const div = document.createElement('div');
+    div.className = 'mini-player-card';
+    div.innerHTML = `<span>${player.emoji} ${player.name}</span><span class="mini-player-price">${formatCrore(s.price)}</span>`;
+    list.appendChild(div);
+  });
+  document.getElementById('my-squad-count').textContent = mySquad.length;
+}
+
+// ===== BIDDING =====
+async function placeBid(type) {
+  if (!roomRef) return;
+  const queue = (await roomRef.child('auction/queue').once('value')).val() || [];
+  const idx = (await roomRef.child('auction/currentIndex').once('value')).val() || 0;
+  const pid = queue[idx];
+  const player = PLAYERS.find(p => p.id === pid);
+  if (!player) return;
+  
+  const increment = TIER_CONFIG[player.tier].increment;
+  const base = TIER_CONFIG[player.tier].basePrice;
+  const auc = (await roomRef.child('auction').once('value')).val();
+  const curBid = auc.currentBid || 0;
+  const myPurseNow = (allPlayers[myId] || {}).purse || 0;
+  
+  let newBid = type === 'max' ? Math.min(myPurseNow, curBid + increment * 3) : curBid + increment;
+  if (newBid <= curBid) return;
+  if (newBid > myPurseNow) { showToast('❌ Not enough purse!'); return; }
+  
+  const bidLogKey = Date.now().toString();
+  await roomRef.child('auction').update({
+    currentBid: newBid,
+    currentBidder: myId,
+    currentBidderName: myName,
+    timerLeft: maxTimer,
+    [`bidLog/${bidLogKey}`]: { name: myName, amount: newBid }
+  });
+  
+  playBidSound();
+}
+
+function playBidSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.frequency.value = 880;
+    o.type = 'sine';
+    g.gain.setValueAtTime(0.3, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+    o.start(); o.stop(ctx.currentTime + 0.2);
+  } catch(e) {}
+}
+
+async function togglePause() {
+  if (!isHost || !roomRef) return;
+  const cur = (await roomRef.child('auction/paused').once('value')).val();
+  await roomRef.child('auction/paused').set(!cur);
+}
+
+async function skipPlayer() {
+  if (!isHost || !roomRef) return;
+  await concludePlayer(false);
+}
+
+// HOST: Timer management
+let hostTimerInterval = null;
+
+function startHostTimer() {
+  if (!isHost || !roomRef) return;
+  clearInterval(hostTimerInterval);
+  hostTimerInterval = setInterval(async () => {
+    if (isPaused) return;
+    const auc = (await roomRef.child('auction').once('value')).val();
+    if (!auc || auc.paused) return;
+    const tl = (auc.timerLeft || maxTimer) - 1;
+    if (tl <= 0) {
+      clearInterval(hostTimerInterval);
+      await concludePlayer(auc.currentBidder !== null);
+    } else {
+      await roomRef.child('auction/timerLeft').set(tl);
+    }
+  }, 1000);
+}
+
+async function concludePlayer(sold) {
+  const auc = (await roomRef.child('auction').once('value')).val();
+  const queue = auc.queue || [];
+  const idx = auc.currentIndex;
+  const pid = queue[idx];
+  const player = PLAYERS.find(p => p.id === pid);
+  
+  if (sold && auc.currentBidder && player) {
+    const winnerId = auc.currentBidder;
+    const winnerData = allPlayers[winnerId] || {};
+    const newSquad = [...(winnerData.squad || []), { id: pid, price: auc.currentBid }];
+    const newPurse = (winnerData.purse || 100) - auc.currentBid;
+    await roomRef.child('players/' + winnerId).update({ squad: newSquad, purse: newPurse });
+    
+    // Show sold overlay for all (use chat message as signal)
+    await roomRef.child('auction/lastResult').set({ sold: true, playerName: player.name, buyerName: auc.currentBidderName, price: auc.currentBid, ts: Date.now() });
+  } else if (player) {
+    await roomRef.child('auction/lastResult').set({ sold: false, playerName: player.name, ts: Date.now() });
+  }
+  
+  const nextIdx = idx + 1;
+  if (nextIdx >= queue.length) {
+    // Auction over
+    await roomRef.update({ status: 'results' });
+    return;
+  }
+  
+  const nextPid = queue[nextIdx];
+  const nextPlayer = PLAYERS.find(p => p.id === nextPid);
+  const nextBase = nextPlayer ? TIER_CONFIG[nextPlayer.tier].basePrice : 0;
+  
+  await roomRef.child('auction').update({
+    currentIndex: nextIdx,
+    currentBid: 0,
+    currentBidder: null,
+    currentBidderName: '',
+    timerLeft: maxTimer,
+    timerMax: maxTimer
+  });
+  
+  startHostTimer();
+}
+
+// Watch for host to manage timer start
+function watchAuctionStart() {
+  if (!db || !roomRef) return;
+  roomRef.child('auction/currentIndex').on('value', snap => {
+    const idx = snap.val();
+    if (idx >= 0 && isHost) {
+      setTimeout(() => startHostTimer(), 500);
+    }
+  });
+  
+  // Watch results overlay
+  roomRef.child('auction/lastResult').on('value', snap => {
+    const r = snap.val();
+    if (!r) return;
+    if (Date.now() - r.ts > 5000) return; // old result
+    showResultOverlay(r);
+  });
+}
+
+function showResultOverlay(r) {
+  const overlay = document.getElementById('result-overlay');
+  const typeEl = document.getElementById('result-type-text');
+  const detailEl = document.getElementById('result-detail');
+  const priceEl = document.getElementById('result-price');
+  
+  if (r.sold) {
+    typeEl.textContent = 'SOLD!';
+    typeEl.className = 'result-type result-sold';
+    detailEl.textContent = `${r.playerName} → ${r.buyerName}`;
+    priceEl.textContent = formatCrore(r.price);
+  } else {
+    typeEl.textContent = 'UNSOLD';
+    typeEl.className = 'result-type result-unsold';
+    detailEl.textContent = r.playerName;
+    priceEl.textContent = '';
+  }
+  
+  overlay.classList.add('active');
+  setTimeout(() => overlay.classList.remove('active'), 3000);
+}
+
+// ===== RESULTS =====
+function calcPlayerScore(player) {
+  let score = 0;
+  // Batting
+  if (player.runs > 0) {
+    score += (player.runs / 100) * 3;
+    score += player.bat_avg * 0.5;
+    if (player.sr > 0) score += (player.sr / 100) * 2;
+  }
+  // Bowling
+  if (player.wickets > 0) {
+    score += player.wickets * 2.5;
+    if (player.bowl_avg > 0) score += (50 - player.bowl_avg) * 0.5;
+    if (player.economy > 0) score += (12 - player.economy) * 1.5;
+  }
+  // All-rounder bonus
+  if (player.role === 'All-rounder') score *= 1.2;
+  // Overseas bonus
+  if (player.overseas) score *= 1.1;
+  return Math.max(0, Math.round(score));
+}
+
+async function showResults(data) {
+  showScreen('results');
+  const players = data.players || {};
+  const teams = Object.entries(players).map(([id, p]) => {
+    const squad = p.squad || [];
+    let totalScore = 0;
+    let totalSpent = 0;
+    
+    const playerDetails = squad.map(s => {
+      const pl = PLAYERS.find(x => x.id === s.id);
+      if (!pl) return null;
+      const pts = calcPlayerScore(pl);
+      totalScore += pts;
+      totalSpent += s.price;
+      return { ...pl, price: s.price, pts };
+    }).filter(Boolean);
+    
+    // Penalty for < 11 players
+    if (squad.length < 11) totalScore = Math.floor(totalScore * 0.5);
+    
+    return {
+      id, name: p.name, team: p.team || 'No Team', purseLeft: p.purse,
+      totalScore, totalSpent, players: playerDetails, count: squad.length
+    };
+  }).sort((a, b) => b.totalScore - a.totalScore);
+  
+  const lb = document.getElementById('leaderboard');
+  lb.innerHTML = '';
+  teams.forEach((t, i) => {
+    const entry = document.createElement('div');
+    entry.className = 'lb-entry';
+    entry.innerHTML = `
+      <div class="lb-header" onclick="toggleTeam(this)">
+        <div class="lb-rank lb-rank-${i+1}">#${i+1}</div>
+        <div class="lb-team-info">
+          <div class="lb-team-name">${t.team}</div>
+          <div class="lb-team-owner">Owner: ${t.name} • ${t.count}/11 players</div>
+        </div>
+        <div class="lb-score-box">
+          <div class="lb-score">${t.totalScore}</div>
+          <div class="lb-score-label">POINTS</div>
+          <div class="lb-purse-used">Spent: ${formatCrore(t.totalSpent)}</div>
+        </div>
+      </div>
+      <div class="lb-players" id="team-${t.id}">
+        ${t.players.map(p => `
+          <div class="lb-player-row">
+            <span>${p.emoji} ${p.name} <span style="color:var(--muted);font-size:0.75rem;">${p.role}</span></span>
+            <span>
+              <span style="color:var(--muted); font-size:0.75rem; margin-right:8px;">${formatCrore(p.price)}</span>
+              <span class="lb-player-pts">${p.pts} pts</span>
+            </span>
+          </div>
+        `).join('')}
+        ${t.count < 11 ? '<div style="color:var(--crimson); font-size:0.8rem; padding:4px 0;">⚠️ Incomplete XI — 50% score penalty applied</div>' : ''}
+      </div>
+    `;
+    lb.appendChild(entry);
+  });
+}
+
+function toggleTeam(header) {
+  const players = header.nextElementSibling;
+  players.classList.toggle('open');
+}
+
+function leaveRoom() {
+  if (db && roomRef) roomRef.off();
+  window.location.reload();
+}
+
+// ===== CHAT =====
+let chatOpen = true;
+function toggleChat() {
+  chatOpen = !chatOpen;
+  document.getElementById('chat-panel').classList.toggle('chat-collapsed', !chatOpen);
+  document.getElementById('chat-toggle-btn').textContent = chatOpen ? '▾' : '▴';
+}
+
+function sendChat() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  
+  if (db && roomRef) {
+    roomRef.child('chat').push({ sender: myName, text, ts: Date.now() });
+  } else {
+    addChatMsg(myName, text);
+  }
+}
+
+function addChatMsg(sender, text) {
+  const body = document.getElementById('chat-body');
+  const div = document.createElement('div');
+  div.className = 'chat-msg';
+  div.innerHTML = `<span>${sender}:</span> ${text}`;
+  body.appendChild(div);
+  body.scrollTop = body.scrollHeight;
+}
+
+// ===== LOCAL SINGLE PLAYER MODE =====
+// (Fallback when Firebase is not available)
+let localRoom = null;
+let localTimerInterval = null;
+
+function initLocalAuction(queue, timer) {
+  playerQueue = queue;
+  maxTimer = timer;
+  timerLeft = timer;
+  myPurse = 100;
+  mySquad = [];
+  currentPlayerIndex = 0;
+  currentBid = 0;
+  currentBidder = null;
+  
+  document.getElementById('chat-panel').style.display = 'block';
+  document.getElementById('host-auction-controls').style.display = 'block';
+  showScreen('auction');
+  
+  loadLocalPlayer();
+}
+
+function loadLocalPlayer() {
+  if (currentPlayerIndex >= playerQueue.length) {
+    endLocalAuction();
+    return;
+  }
+  
+  const pid = playerQueue[currentPlayerIndex];
+  const player = PLAYERS.find(p => p.id === pid);
+  if (!player) { currentPlayerIndex++; loadLocalPlayer(); return; }
+  
+  currentBid = 0;
+  currentBidder = null;
+  timerLeft = maxTimer;
+  
+  const base = TIER_CONFIG[player.tier].basePrice;
+  showPlayerSpotlight(player);
+  
+  document.getElementById('spot-current-bid').textContent = formatCrore(base);
+  document.getElementById('spot-bidder').textContent = 'No bids yet';
+  document.getElementById('auction-progress-text').textContent = `Player ${currentPlayerIndex+1} of ${playerQueue.length}`;
+  document.getElementById('auction-progress-bar').style.width = `${((currentPlayerIndex+1)/playerQueue.length)*100}%`;
+  
+  updateTimerDisplay(timerLeft, maxTimer);
+  
+  const canBid = mySquad.length < 11 && base <= myPurse;
+  document.getElementById('bid-btn-1').disabled = !canBid;
+  document.getElementById('bid-btn-max').disabled = !canBid;
+  document.getElementById('bid-btn-1').textContent = `BID ${formatCrore(base + TIER_CONFIG[player.tier].increment)}`;
+  
+  updateLocalPurseDisplay();
+  
+  clearInterval(localTimerInterval);
+  localTimerInterval = setInterval(() => {
+    if (isPaused) return;
+    timerLeft -= 1;
+    updateTimerDisplay(timerLeft, maxTimer);
+    if (timerLeft <= 0) {
+      clearInterval(localTimerInterval);
+      concludeLocalPlayer();
+    }
+  }, 1000);
+}
+
+function concludeLocalPlayer() {
+  const pid = playerQueue[currentPlayerIndex];
+  const player = PLAYERS.find(p => p.id === pid);
+  
+  if (currentBidder === 'me') {
+    mySquad.push({ id: pid, price: currentBid });
+    myPurse -= currentBid;
+    showResultOverlay({ sold: true, playerName: player.name, buyerName: myName, price: currentBid, ts: Date.now() });
+  } else {
+    showResultOverlay({ sold: false, playerName: player.name, ts: Date.now() });
+  }
+  
+  currentPlayerIndex++;
+  setTimeout(() => loadLocalPlayer(), 3200);
+}
+
+// Override bid function for local mode
+document.getElementById('bid-btn-1').addEventListener('click', function() {
+  if (db) return; // handled by async placeBid
+  const pid = playerQueue[currentPlayerIndex];
+  const player = PLAYERS.find(p => p.id === pid);
+  if (!player) return;
+  const increment = TIER_CONFIG[player.tier].increment;
+  const base = TIER_CONFIG[player.tier].basePrice;
+  const nextBid = Math.max(base, currentBid) + increment;
+  if (nextBid > myPurse) { showToast('❌ Not enough purse!'); return; }
+  currentBid = nextBid;
+  currentBidder = 'me';
+  timerLeft = maxTimer;
+  document.getElementById('spot-current-bid').textContent = formatCrore(currentBid);
+  document.getElementById('spot-bidder').textContent = `Leading: ${myName}`;
+  document.getElementById('bid-btn-1').textContent = `BID ${formatCrore(currentBid + increment)}`;
+  playBidSound();
+}, { passive: true });
+
+document.getElementById('bid-btn-max').addEventListener('click', function() {
+  if (db) return;
+  const pid = playerQueue[currentPlayerIndex];
+  const player = PLAYERS.find(p => p.id === pid);
+  if (!player) return;
+  const increment = TIER_CONFIG[player.tier].increment;
+  const base = TIER_CONFIG[player.tier].basePrice;
+  const maxBid = Math.min(myPurse, Math.max(base, currentBid) + increment * 5);
+  if (maxBid <= currentBid) { showToast('❌ Not enough purse!'); return; }
+  currentBid = maxBid;
+  currentBidder = 'me';
+  timerLeft = maxTimer;
+  document.getElementById('spot-current-bid').textContent = formatCrore(currentBid);
+  document.getElementById('spot-bidder').textContent = `Leading: ${myName}`;
+  playBidSound();
+}, { passive: true });
+
+function updateLocalPurseDisplay() {
+  document.getElementById('my-purse-display').textContent = formatCrore(myPurse);
+  document.getElementById('my-players-count').textContent = mySquad.length;
+  document.getElementById('purse-bar-fill').style.width = `${(myPurse/100)*100}%`;
+  
+  const list = document.getElementById('my-squad-list');
+  list.innerHTML = '';
+  mySquad.forEach(s => {
+    const pl = PLAYERS.find(p => p.id === s.id);
+    if (!pl) return;
+    const div = document.createElement('div');
+    div.className = 'mini-player-card';
+    div.innerHTML = `<span>${pl.emoji} ${pl.name}</span><span class="mini-player-price">${formatCrore(s.price)}</span>`;
+    list.appendChild(div);
+  });
+  document.getElementById('my-squad-count').textContent = mySquad.length;
+}
+
+function togglePause() {
+  if (!db) {
+    isPaused = !isPaused;
+    document.getElementById('pause-banner').classList.toggle('active', isPaused);
+    document.getElementById('pause-btn').textContent = isPaused ? '▶ Resume' : '⏸ Pause';
+    return;
+  }
+  // Firebase version handled above
+  if (!isHost || !roomRef) return;
+  roomRef.child('auction/paused').once('value').then(snap => {
+    roomRef.child('auction/paused').set(!snap.val());
+  });
+}
+
+function skipPlayer() {
+  if (!db) {
+    clearInterval(localTimerInterval);
+    showResultOverlay({ sold: false, playerName: (PLAYERS.find(p => p.id === playerQueue[currentPlayerIndex]) || {}).name || '', ts: Date.now() });
+    currentPlayerIndex++;
+    setTimeout(() => loadLocalPlayer(), 3200);
+    return;
+  }
+  // Firebase version
+  if (!isHost || !roomRef) return;
+  concludePlayer(false);
+}
+
+function endLocalAuction() {
+  const teams = [{
+    id: myId, name: myName, team: document.getElementById('my-team-name').value || 'My Team',
+    purseLeft: myPurse, totalScore: 0, totalSpent: 0, players: [], count: mySquad.length
+  }];
+  
+  mySquad.forEach(s => {
+    const pl = PLAYERS.find(p => p.id === s.id);
+    if (!pl) return;
+    const pts = calcPlayerScore(pl);
+    teams[0].totalScore += pts;
+    teams[0].totalSpent += s.price;
+    teams[0].players.push({ ...pl, price: s.price, pts });
+  });
+  
+  if (mySquad.length < 11) teams[0].totalScore = Math.floor(teams[0].totalScore * 0.5);
+  
+  const lb = document.getElementById('leaderboard');
+  lb.innerHTML = '';
+  teams.forEach((t, i) => {
+    const entry = document.createElement('div');
+    entry.className = 'lb-entry';
+    entry.innerHTML = `
+      <div class="lb-header" onclick="toggleTeam(this)">
+        <div class="lb-rank lb-rank-1">#1</div>
+        <div class="lb-team-info">
+          <div class="lb-team-name">${t.team}</div>
+          <div class="lb-team-owner">Owner: ${t.name} • ${t.count}/11 players</div>
+        </div>
+        <div class="lb-score-box">
+          <div class="lb-score">${t.totalScore}</div>
+          <div class="lb-score-label">POINTS</div>
+          <div class="lb-purse-used">Spent: ${formatCrore(t.totalSpent)}</div>
+        </div>
+      </div>
+      <div class="lb-players lb-players open">
+        ${t.players.map(p => `
+          <div class="lb-player-row">
+            <span>${p.emoji} ${p.name}</span>
+            <span><span style="color:var(--muted);font-size:0.75rem;margin-right:8px;">${formatCrore(p.price)}</span><span class="lb-player-pts">${p.pts} pts</span></span>
+          </div>
+        `).join('')}
+        ${t.count < 11 ? '<div style="color:var(--crimson);font-size:0.8rem;padding:4px 0;">⚠️ Incomplete XI — 50% score penalty applied</div>' : ''}
+      </div>
+    `;
+    lb.appendChild(entry);
+  });
+  
+  showScreen('results');
+}
+
+// ===== KEYBOARD ENTER for chat =====
+document.getElementById('chat-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') sendChat();
+});
+
+// ===== URL PARAM for room join =====
+window.addEventListener('load', () => {
+  initFirebase();
+  
+  const params = new URLSearchParams(window.location.search);
+  const roomParam = params.get('room');
+  if (roomParam) {
+    document.getElementById('entry-code').value = roomParam;
+    showJoinRoom();
+  }
+  
+  if (db) watchAuctionStart();
+});
+</script>
+</body>
+</html>
